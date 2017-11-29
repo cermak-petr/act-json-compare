@@ -1,0 +1,16 @@
+{ 
+  "name": "executions-compare",
+  "version": "1.0.0",
+  "description": "Apify act for comparing 2 JSON arrays of objects",
+  "main": "main.js",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cermak-petr/act-executions-compare"
+  },
+  "dependencies": {
+    "apify": "^0.4.36",
+    "underscore": "^1.8.3",
+    "request-promise": "^4.2.2"
+  }
+}
