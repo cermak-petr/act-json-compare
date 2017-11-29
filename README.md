@@ -11,8 +11,8 @@ Input is a JSON object with the following properties:
 
 ```javascript
 {
-  "oldExec": OLD_JSON_URL,
-  "newExec": NEW_JSON_URL,
+  "oldJson": OLD_JSON_URL,
+  "newJson": NEW_JSON_URL,
   "idAttr": ID_ATTRIBUTE_NAME,
   "return": WHICH_RECORDS_TO_RETURN,    // default: "new, updated"
   "addStatus": ADD_TEXT_STATUS          // default: false
