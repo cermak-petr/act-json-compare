@@ -37,7 +37,7 @@ async function compareResults(newJsonUrl, compareMap, idAttr, settings){
         _.each(results, (result, index) => {
             if(result && result[idAttr]){
                 const id = result[idAttr];
-                const oldResult = compareMap[id];
+                const oldResult = compareMap ? compareMap[id] : null;
                 if(!oldResult){
                     if(settings.addStatus){result[settings.statusAttr] = 'NEW';}
                     if(settings.returnNew){data.push(result);}
@@ -61,7 +61,7 @@ async function compareResults(newJsonUrl, compareMap, idAttr, settings){
     });
     console.log('comparing results finished');
     
-    if(settings.returnDel){
+    if(compareMap && settings.returnDel){
         console.log('processing deleted results');
         _.each(Object.values(compareMap), (oldResult, index) => {
             if(settings.addStatus){oldResult[settings.statusAttr] = 'DELETED';}
@@ -82,11 +82,11 @@ Apify.main(async () => {
     if(!data.idAttr){
         return console.log('missing "idAttr" attribute in INPUT');
     }
-    if(!data.oldJson){
-        return console.log('missing "oldJson" attribute in INPUT');
-    }
     if(!data.newJson){
         return console.log('missing "newJson" attribute in INPUT');
+    }
+    if(!data.oldJson){
+        console.log('warning: missing "oldJson" attribute in INPUT, all results will be marked as NEW');
     }
     
     const settings = {};
