@@ -48,7 +48,8 @@ async function compareResults(newJsonUrl, compareMap, idAttr, settings){
                         if(settings.addStatus){result[settings.statusAttr] = 'UPDATED';}
                         if(settings.returnUpd){
                             if(settings.addChanges){
-                                result[settings.changesAttr] = changes || getChangeAttributes(oldResult, result);
+                                const tChanges = changes || getChangeAttributes(oldResult, result);
+                                result[settings.changesAttr] = settings.stringifyChanges ? tChanges.join(', ') : tChanges;
                             }
                             data.push(result);
                         }
@@ -134,6 +135,7 @@ Apify.main(async () => {
     settings.addChanges = data.addChanges ? true : false;
     settings.statusAttr = data.statusAttr ? data.statusAttr : 'status';
     settings.changesAttr = data.changesAttr ? data.changesAttr : 'changes';
+    settings.stringifyChanges = data.stringifyChanges;
     settings.updatedIf = data.updatedIf;
     
     const compareMap = await createCompareMap(data.oldJson, data.idAttr);
