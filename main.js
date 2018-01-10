@@ -44,9 +44,27 @@ async function compareResults(newJsonUrl, compareMap, idAttr, settings){
                     newCount++;
                 }
                 else if(!_.isEqual(result, oldResult)){
-                    if(settings.addStatus){result[settings.statusAttr] = 'UPDATED';}
-                    if(settings.returnUpd){data.push(result);}
-                    updCount++;
+                    const addUpdated = function(changes){
+                        if(settings.addStatus){result[settings.statusAttr] = 'UPDATED';}
+                        if(settings.returnUpd){
+                            if(settings.addChanges){
+                                result[settings.changesAttr] = changes || getChangeAttributes(oldResult, result);
+                            }
+                            data.push(result);
+                        }
+                        updCount++;
+                    }
+                    if(settings.updatedIf){
+                        const changes = getChangeAttributes(oldResult, result);
+                        const intersection = _.intersection(settings.updatedIf, changes);
+                        if(!intersection.length){
+                            if(settings.addStatus){result[settings.statusAttr] = 'UNCHANGED';}
+                            if(settings.returnUnc){data.push(result);}
+                            uncCount++;
+                        }
+                        else{addUpdated(intersection);}
+                    }
+                    else{addUpdated();}
                 }
                 else{
                     if(settings.addStatus){result[settings.statusAttr] = 'UNCHANGED';}
@@ -75,6 +93,23 @@ async function compareResults(newJsonUrl, compareMap, idAttr, settings){
     return data;
 }
 
+function getChangeAttributes(obj1, obj2, prefix, out){
+    const changes = out ? out : [];
+    if(obj1){
+        for(const key in obj1){
+            const v1 = obj1[key];
+            const v2 = obj2 ? obj2[key] : null;
+            if(!_.isEqual(v1, v2)){
+                if(v1 !== null && typeof v1 === 'object'){
+                    getChangeAttributes(v1, v2, key + '/', changes);
+                }
+                else{changes.push(prefix ? prefix + key : key);}
+            }
+        }
+    }
+    return changes;
+}
+
 Apify.main(async () => {
     const input = await Apify.getValue('INPUT');
     
@@ -96,7 +131,10 @@ Apify.main(async () => {
     settings.returnDel = data.return.match(/deleted/i);
     settings.returnUnc = data.return.match(/unchanged/i);
     settings.addStatus = data.addStatus ? true : false;
+    settings.addChanges = data.addChanges ? true : false;
     settings.statusAttr = data.statusAttr ? data.statusAttr : 'status';
+    settings.changesAttr = data.changesAttr ? data.changesAttr : 'changes';
+    settings.updatedIf = data.updatedIf;
     
     const compareMap = await createCompareMap(data.oldJson, data.idAttr);
     const resultData = await compareResults(data.newJson, compareMap, data.idAttr, settings);
