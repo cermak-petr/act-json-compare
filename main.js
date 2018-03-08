@@ -8,6 +8,14 @@ async function loadResults(url, process){
     return await process(response);
 }
 
+function createKey(result, idAttr){
+    return result ? (
+        Array.isArray(idAttr) ? 
+        idAttr.map(ida => result[ida]).join('_') : 
+        result[idAttr]
+    ) : null;
+}
+
 async function createCompareMap(oldJsonUrl, idAttr){
     const data = {};
     let processed = 0;
@@ -15,9 +23,8 @@ async function createCompareMap(oldJsonUrl, idAttr){
     await loadResults(oldJsonUrl, async (fullResults) => {
         const results = _.chain(fullResults.items).pluck('pageFunctionResult').flatten().value();
         _.each(results, (result, index) => {
-            if(result && result[idAttr]){
-                data[result[idAttr]] = result;
-            }
+            const key = createKey(result, idAttr);
+            if(key){data[key] = result;}
         });
         processed += results.length;
         console.log('processed old results: ' + processed);
@@ -35,8 +42,8 @@ async function compareResults(newJsonUrl, compareMap, idAttr, settings){
     await loadResults(newJsonUrl, async (fullResults) => {
         const results = _.chain(fullResults.items).pluck('pageFunctionResult').flatten().value();
         _.each(results, (result, index) => {
-            if(result && result[idAttr]){
-                const id = result[idAttr];
+            const id = createKey(result, idAttr);
+            if(id){
                 const oldResult = compareMap ? compareMap[id] : null;
                 if(!oldResult){
                     if(settings.addStatus){result[settings.statusAttr] = 'NEW';}
