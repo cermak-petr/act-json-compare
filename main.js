@@ -34,31 +34,42 @@ async function createCompareMap(oldJsonUrl, idAttr){
 }
 
 async function compareResults(newJsonUrl, compareMap, idAttr, settings){
-    const data = [];
-    let processed = 0;
-    let newCount = 0, updCount = 0, delCount = 0, uncCount = 0;
+    let data = [];
+    let processed = 0, pushData = null;
+    let newCount = 0, updCount = 0, delCount = 0, uncCount = 0, index = 0;
+    
+    if(settings.useDataset){
+        pushData = (value, flush) => {
+            if(!flush){data.push(value);}
+            if(data.length >= 100 || flush){
+                Apify.pushData(data);
+                data = [];
+            }
+        };
+    }
+    else{pushData = async value => data.push(value);}
     
     console.log('comparing results');
     await loadResults(newJsonUrl, async (fullResults) => {
-        const results = _.chain(fullResults.items).pluck('pageFunctionResult').flatten().value();
-        _.each(results, (result, index) => {
+        const results = _.chain(fullResults.items).flatten().value();
+        for(const result of results){
             const id = createKey(result, idAttr);
             if(id){
                 const oldResult = compareMap ? compareMap[id] : null;
                 if(!oldResult){
                     if(settings.addStatus){result[settings.statusAttr] = 'NEW';}
-                    if(settings.returnNew){data.push(result);}
+                    if(settings.returnNew){await pushData(result);}//data.push(result);}
                     newCount++;
                 }
                 else if(!_.isEqual(result, oldResult)){
-                    const addUpdated = function(changes){
+                    const addUpdated = async function(changes){
                         if(settings.addStatus){result[settings.statusAttr] = 'UPDATED';}
                         if(settings.returnUpd){
                             if(settings.addChanges){
                                 const tChanges = changes || getChangeAttributes(oldResult, result);
                                 result[settings.changesAttr] = settings.stringifyChanges ? tChanges.join(', ') : tChanges;
                             }
-                            data.push(result);
+                            await pushData(result);//data.push(result);
                         }
                         updCount++;
                     }
@@ -67,21 +78,22 @@ async function compareResults(newJsonUrl, compareMap, idAttr, settings){
                         const intersection = _.intersection(settings.updatedIf, changes);
                         if(!intersection.length){
                             if(settings.addStatus){result[settings.statusAttr] = 'UNCHANGED';}
-                            if(settings.returnUnc){data.push(result);}
+                            if(settings.returnUnc){await pushData(result);}//data.push(result);}
                             uncCount++;
                         }
-                        else{addUpdated(intersection);}
+                        else{await addUpdated(intersection);}
                     }
-                    else{addUpdated();}
+                    else{await addUpdated();}
                 }
                 else{
                     if(settings.addStatus){result[settings.statusAttr] = 'UNCHANGED';}
-                    if(settings.returnUnc){data.push(result);}
+                    if(settings.returnUnc){await pushData(result);}//data.push(result);}
                     uncCount++;
                 }
-                delete compareMap[id];
+                if(compareMap){delete compareMap[id];}
             }
-        });
+            else{console.log('record is missing id (' + idAttr + '): ' + JSON.stringify(result));}
+        }
         processed += results.length;
         console.log('compared new results: ' + processed);
     });
@@ -89,16 +101,20 @@ async function compareResults(newJsonUrl, compareMap, idAttr, settings){
     
     if(compareMap && settings.returnDel){
         console.log('processing deleted results');
-        _.each(Object.values(compareMap), (oldResult, index) => {
+        const values = Object.values(compareMap);
+        for(const oldResult of values){
             if(settings.addStatus){oldResult[settings.statusAttr] = 'DELETED';}
-            data.push(oldResult);
+            await pushData(oldResult);//data.push(oldResult);
             delCount++;
-        });
+        }
         console.log('processing deleted results finished');
     }
     
-    console.log('new: ' + newCount + ', updated: ' + updCount + ', deleted: ' + delCount + ', unchanged: ' + uncCount);
-    return data;
+    console.log('new: ' + newCount + ', updated: ' + updCount + 
+                (settings.returnDel ? (', deleted: ' + delCount) : '') + 
+                ', unchanged: ' + uncCount);
+    if(!settings.useDataset){return data;}
+    else{pushData(null, true);}
 }
 
 function getChangeAttributes(obj1, obj2, prefix, out){
@@ -144,10 +160,11 @@ Apify.main(async () => {
     settings.changesAttr = data.changesAttr ? data.changesAttr : 'changes';
     settings.stringifyChanges = data.stringifyChanges;
     settings.updatedIf = data.updatedIf;
+    settings.useDataset = data.useDataset;
     
     const compareMap = await createCompareMap(data.oldJson, data.idAttr);
     const resultData = await compareResults(data.newJson, compareMap, data.idAttr, settings);
     
-    await Apify.setValue('OUTPUT', resultData);
+    if(resultData){await Apify.setValue('OUTPUT', resultData);}
     console.log('finished');
 });
