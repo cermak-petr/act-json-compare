@@ -21,7 +21,7 @@ async function createCompareMap(oldJsonUrl, idAttr){
     let processed = 0;
     console.log('creating comparing map');
     await loadResults(oldJsonUrl, async (fullResults) => {
-        const results = _.chain(fullResults).flatten().value();
+        const results = _.flatten(fullResults);
         _.each(results, (result, index) => {
             const key = createKey(result, idAttr);
             if(key){data[key] = result;}
@@ -52,7 +52,7 @@ async function compareResults(newJsonUrl, compareMap, idAttr, settings){
     
     console.log('comparing results');
     await loadResults(newJsonUrl, async (fullResults) => {
-        const results = _.chain(fullResults).flatten().value();
+        const results = _.flatten(fullResults);
         for(const result of results){
             const id = createKey(result, idAttr);
             if(id){
