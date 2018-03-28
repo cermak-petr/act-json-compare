@@ -114,7 +114,10 @@ async function compareResults(newJsonUrl, compareMap, idAttr, settings){
                 (settings.returnDel ? (', deleted: ' + delCount) : '') + 
                 ', unchanged: ' + uncCount);
     if(!settings.useDataset){return data;}
-    else{pushData(null, true);}
+    else{
+        await pushData(null, true); 
+        return null;
+    }
 }
 
 function getChangeAttributes(obj1, obj2, prefix, out){
