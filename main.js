@@ -4,7 +4,7 @@ const request = require('request-promise');
 
 async function loadResults(url, process){
     const options = {uri: url, json: true};
-    const response = await request(url);
+    const response = await request(options);
     return await process(response);
 }
 
