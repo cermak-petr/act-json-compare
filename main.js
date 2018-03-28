@@ -165,11 +165,8 @@ Apify.main(async () => {
     settings.updatedIf = data.updatedIf;
     settings.useDataset = data.useDataset;
     
-    try{
-        const compareMap = await createCompareMap(data.oldJson, data.idAttr);
-        const resultData = await compareResults(data.newJson, compareMap, data.idAttr, settings);
-    }
-    catch(e){console.log(e);}
+    const compareMap = await createCompareMap(data.oldJson, data.idAttr);
+    const resultData = await compareResults(data.newJson, compareMap, data.idAttr, settings);
     
     if(resultData){await Apify.setValue('OUTPUT', resultData);}
     console.log('finished');
