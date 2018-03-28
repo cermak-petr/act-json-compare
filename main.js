@@ -40,7 +40,6 @@ async function compareResults(newJsonUrl, compareMap, idAttr, settings){
     
     if(settings.useDataset){
         pushData = async (value, flush) => {
-            console.dir(value);
             if(!flush){data.push(value);}
             if(data.length >= 100 || flush){
                 await Apify.pushData(data);
